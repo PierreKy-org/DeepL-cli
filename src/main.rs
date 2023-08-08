@@ -1,7 +1,9 @@
-
+#[macro_use] extern crate prettytable;
+use prettytable::Table;
 use reqwest::{self, header::{USER_AGENT, AUTHORIZATION, CONTENT_TYPE}, Response};
 use std::env;   
 use dotenv::dotenv;
+use colored::Colorize;
 
 async fn send_request_to_deepl(text : &String, dest_language : &String) -> Response {
 
@@ -21,6 +23,29 @@ async fn send_request_to_deepl(text : &String, dest_language : &String) -> Respo
     .await;
     response.unwrap()
 }
+
+
+fn print_json_cli(json : serde_json::Value, text_before : &String, dest_language : &String) {
+    //text before 
+
+    let source = format!("Source : {}", json["translations"][0]["detected_source_language"].as_str().unwrap().red());
+    let text_before = format!("{}", text_before.red());
+    let destination = format!("Destination : {}", dest_language.green());
+    let translation = format!("{}", json["translations"][0]["text"].as_str().unwrap().green().bold());
+
+
+    let mut table = Table::new();
+
+    // Add a row per time
+    table.add_row(row![source, destination]);
+    table.add_row(row![text_before, translation]);
+    // Print the table to stdout
+    table.printstd();
+}
+
+
+
+
 #[tokio::main]
 async fn main() {
     dotenv().ok();
@@ -46,7 +71,7 @@ async fn main() {
 
     match response.status() {
         reqwest::StatusCode::OK => {
-            println!("Success! {:?}", response.json::<serde_json::Value>().await.unwrap());
+            print_json_cli(response.json::<serde_json::Value>().await.unwrap(), &args[1], &args[2]);
         }
         reqwest::StatusCode::FORBIDDEN => {
             println!("Token is invalid! Please check your .env file and try again.");
