@@ -1,9 +1,11 @@
-#[macro_use] extern crate prettytable;
-use prettytable::Table;
 use reqwest::{self, header::{USER_AGENT, AUTHORIZATION, CONTENT_TYPE}, Response};
 use std::env;   
 use dotenv::dotenv;
 use colored::Colorize;
+extern crate text_box;
+use text_box::TextBox;
+use text_box::utils::{clear_screen, goto};
+extern crate term_size; 
 
 async fn send_request_to_deepl(text : &String, dest_language : &String) -> Response {
 
@@ -25,7 +27,7 @@ async fn send_request_to_deepl(text : &String, dest_language : &String) -> Respo
 }
 
 
-fn print_json_cli(json : serde_json::Value, text_before : &String, dest_language : &String) {
+fn print_result_cli(json : serde_json::Value, text_before : &String, dest_language : &String) {
     //text before 
 
     let source = format!("Source : {}", json["translations"][0]["detected_source_language"].as_str().unwrap().red());
@@ -33,14 +35,27 @@ fn print_json_cli(json : serde_json::Value, text_before : &String, dest_language
     let destination = format!("Destination : {}", dest_language.green());
     let translation = format!("{}", json["translations"][0]["text"].as_str().unwrap().green().bold());
 
+    let terminal_x = (term_size::dimensions().unwrap().0) as u8;
+    let terminal_y = (term_size::dimensions().unwrap().1 / 2) as u8;
 
-    let mut table = Table::new();
+    let box_source = TextBox::new(
+		1, 2,
+		terminal_x , terminal_y ,
+		0,
+		source.as_str(),
+		text_before.as_str(),
+	).unwrap();
+    //Create TextBox
+    let box_destination = TextBox::new(
+		1, 10,
+		terminal_x , terminal_y ,
+		0,
+		destination.as_str(),
+		translation.as_str(),
+	).unwrap();
+    println!("{} {}", box_source,  box_destination);
+    goto(1,40);
 
-    // Add a row per time
-    table.add_row(row![source, destination]);
-    table.add_row(row![text_before, translation]);
-    // Print the table to stdout
-    table.printstd();
 }
 
 
@@ -48,6 +63,7 @@ fn print_json_cli(json : serde_json::Value, text_before : &String, dest_language
 
 #[tokio::main]
 async fn main() {
+    clear_screen();
     dotenv().ok();
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
@@ -67,11 +83,13 @@ async fn main() {
             return;
         }
     }
+
+    
     let response = send_request_to_deepl(&args[1], &args[2]).await;
 
     match response.status() {
         reqwest::StatusCode::OK => {
-            print_json_cli(response.json::<serde_json::Value>().await.unwrap(), &args[1], &args[2]);
+            print_result_cli(response.json::<serde_json::Value>().await.unwrap(), &args[1], &args[2]);
         }
         reqwest::StatusCode::FORBIDDEN => {
             println!("Token is invalid! Please check your .env file and try again.");

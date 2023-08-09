@@ -1,6 +1,6 @@
 [package]
 name = "deepl-cli"
-version = "0.1.0"
+version = "0.6.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -15,4 +15,5 @@ serde_json = "1.0.104"
 json = "0.12.4"
 dotenv = "0.15.0"
 colored = "2.0.4"
-prettytable-rs = "^0.10"
+text_box = "0.2.4"
+term_size = "0.3.0"
