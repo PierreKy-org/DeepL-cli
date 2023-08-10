@@ -1,11 +1,17 @@
+mod args;
+
+extern crate term_size; 
+extern crate text_box;
+
 use reqwest::{self, header::{USER_AGENT, AUTHORIZATION, CONTENT_TYPE}, Response};
 use std::env;   
 use dotenv::dotenv;
 use colored::Colorize;
-extern crate text_box;
 use text_box::TextBox;
 use text_box::utils::{clear_screen, goto};
-extern crate term_size; 
+use args::Cli;
+use clap::Parser;
+
 
 async fn send_request_to_deepl(text : &String, dest_language : &String) -> Response {
 
@@ -64,32 +70,29 @@ fn print_result_cli(json : serde_json::Value, text_before : &String, dest_langua
 #[tokio::main]
 async fn main() {
     clear_screen();
+    
     dotenv().ok();
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        println!("Please provide a text to translate and a destination language.\nExample : ./deepl-cli \"Hello World\" FR");
-        return;
-    }
+
+    let cli = Cli::parse();
+
     //check if DEEPL_TOKEN exist 
     match env::var("DEEPL_TOKEN") {
         Ok(token) => {
             if token == "" {
-                println!("Please provide a valid DEEPL_TOKEN in your .env file.");
+                println!("Please recompile with a valid DEEPL_TOKEN in your .env file.");
                 return;
             }
         }
         Err(_) => {
-            println!("Please provide a valid DEEPL_TOKEN in your .env file.");
+            println!("Please recompile with a valid DEEPL_TOKEN in your .env file.");
             return;
         }
     }
-
-    
-    let response = send_request_to_deepl(&args[1], &args[2]).await;
+    let response = send_request_to_deepl(&cli.text, &cli.language).await;
 
     match response.status() {
         reqwest::StatusCode::OK => {
-            print_result_cli(response.json::<serde_json::Value>().await.unwrap(), &args[1], &args[2]);
+            print_result_cli(response.json::<serde_json::Value>().await.unwrap(), &cli.text, &cli.language);
         }
         reqwest::StatusCode::FORBIDDEN => {
             println!("Token is invalid! Please check your .env file and try again.");

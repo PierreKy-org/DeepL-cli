@@ -17,3 +17,4 @@ dotenv = "0.15.0"
 colored = "2.0.4"
 text_box = "0.2.4"
 term_size = "0.3.0"
+clap = { version = "4.3.21", features = ["derive"] }
